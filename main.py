@@ -95,6 +95,7 @@ class MainWindow(QMainWindow):
 
     def generate_test_cases(self):
         # Get the input values
+        global rmtc_content
         controller_file_path = self.controller_file_input.text()
         test_file_path = self.test_file_input.text()
         reference_method = self.reference_method_input.text()
@@ -173,6 +174,7 @@ class MainWindow(QMainWindow):
 
         # Find the target method content in the controller file
         target_method_content = []
+        reference_method_content_tc = []
         target_method_start = False
         prev_line_empty = True  # Variable to track if the previous line was empty
         for i, line in enumerate(controller_content):
@@ -238,7 +240,40 @@ class MainWindow(QMainWindow):
                     f"\nContent of reference method '{test_case}' from ControllerTest file:\n"
                 )
                 for line in rmtc_content:
+                    reference_method_content_tc.append(line)
                     test_case_file.write(line)
+
+        # Create a statement with content data in 'tcq.txt' file
+        with open("tcq.txt", "w") as tcq_file:
+            tcq_file.write("If for this method:\n")
+            request_query.append("\nOpen-AI Query:\n")
+            request_query.append("If for this method:\n")
+            for line in reference_method_content[1:]:
+                if "Mapping" in line:
+                    break
+                tcq_file.write(line.strip() + "\n")
+                request_query.append(line.strip() + "\n")
+
+            tcq_file.write("These are test cases:\n")
+            request_query.append("These are test cases:\n")
+            tcq_file.write("\n")
+            for line in reference_method_content_tc:
+                tcq_file.write(line.strip() + "\n")
+                request_query.append(line.strip() + "\n")
+
+            tcq_file.write("\n")  # Add a space between reference method test cases and target method content
+
+            tcq_file.write("Then create all type of test cases for below controller:\n")
+            request_query.append("Then create all type of test cases for below controller:\n")
+            for line in target_method_content:
+                tcq_file.write(line.strip() + "\n")
+                request_query.append(line.strip() + "\n")
+
+            for q in request_query:
+                tcq_file.write(q)
+
+        self.log_message("The statement with content data has been printed and saved in 'tcq.txt'.")
+
 
 # Configuration file path
 config_file = "config.json"
@@ -249,6 +284,10 @@ if not os.path.exists(config_file):
     with open(config_file, "w") as f:
         json.dump({}, f)
 
+ref_method = ""
+target_method = ""
+ref_method_tc = ""
+request_query = []
 # Create the application instance
 app = QApplication(sys.argv)
 
