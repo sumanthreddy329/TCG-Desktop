@@ -104,6 +104,8 @@ class MainWindow(QMainWindow):
         try:
             with open(controller_file_path, "r") as controller_file:
                 controller_content = controller_file.readlines()
+            with open(test_file_path, "r") as controllertest_file:
+                controllertest_content = controllertest_file.readlines()
         except FileNotFoundError:
             self.log_message("Error: Controller file not found.")
             return
@@ -172,16 +174,21 @@ class MainWindow(QMainWindow):
         # Find the target method content in the controller file
         target_method_content = []
         target_method_start = False
+        prev_line_empty = True  # Variable to track if the previous line was empty
         for i, line in enumerate(controller_content):
             if target_method in line:
                 target_method_start = True
-                if i > 0 and "Mapping" in controller_content[i - 1]:
-                    target_method_content.append(controller_content[i-1])
+                if i > 0 and "@" in controller_content[i - 1]:
+                    target_method_content.append(controller_content[i - 1])
+                if not prev_line_empty:
+                    target_method_content.append(line)  # Include the current line
             elif target_method_start:
                 if "@" in line:
                     target_method_start = False
                     break
                 target_method_content.append(line)
+
+            prev_line_empty = line.strip() == ""  # Check if the current line is empty
 
         if target_method_content:
             self.log_message(
@@ -198,6 +205,40 @@ class MainWindow(QMainWindow):
 
         self.log_message("Target method content has been printed and appended to 'testcases.txt'.")
 
+        # Find the reference method content in the ControllerTest file
+        for test_case in reference_test_cases:
+            rmtc_content = []
+            rmtc_start = False
+            prev_line_empty = True  # Variable to track if the previous line was empty
+            for i, line in enumerate(controllertest_content):
+                if test_case in line:
+                    rmtc_start = True
+                    if i > 0 and "@" in controllertest_content[i - 1]:
+                        rmtc_content.append(controllertest_content[i - 1])
+                    if not prev_line_empty:
+                        rmtc_content.append(line)  # Include the current line
+                elif rmtc_start:
+                    if "@" in line:
+                        rmtc_start = False
+                        break
+                    rmtc_content.append(line)
+
+                prev_line_empty = line.strip() == ""  # Check if the current line is empty
+
+            # Print reference method content
+            self.log_message(
+                f"\nContent of reference method '{test_case}' from ControllerTest file:"
+            )
+            for line in rmtc_content:
+                self.log_message(line.strip())
+
+            # Save reference method content to the 'testcases.txt' file
+            with open("testcases.txt", "a") as test_case_file:
+                test_case_file.write(
+                    f"\nContent of reference method '{test_case}' from ControllerTest file:\n"
+                )
+                for line in rmtc_content:
+                    test_case_file.write(line)
 
 # Configuration file path
 config_file = "config.json"
